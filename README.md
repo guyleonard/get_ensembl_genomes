@@ -38,5 +38,8 @@ or to download the gff3 files for Plants:
 ./bin/get_ensemble_genomes -p -V 47 -g
 ```
 
+# Other Genome Download Tools
+ * [Get JGI Genomes](https://github.com/guyleonard/get_jgi_genomes)
+
 # Broken?
 Sometimes names change or names are slightly different in the table than they are on the ftp, let me know and I'll update to catch the exceptions.
