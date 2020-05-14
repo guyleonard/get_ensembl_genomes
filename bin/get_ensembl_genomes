@@ -8,13 +8,16 @@ function help_function()
 {
    echo ""
    echo "e.g. Usage: $0 -p -V db_version"
+   echo -e "Databases:"
    echo -e "\t-f Ensembl DB: Fungi"
    echo -e "\t-m Ensembl DB: Metazoa"
    echo -e "\t-a Ensembl DB: Plants"
    echo -e "\t-p Ensembl DB: Protists"
+   echo -e "Version:"
+   echo -e "\t-V Ensembl DB: Version"
+   echo -e "Other:"
    echo -e "\t-c CDS (genes) instead of peptides (default)"
    echo -e "\t-g Get GFF3 instead of FASTA"
-   echo -e "\t-V Ensembl DB: Version"
    exit 1 # Exit script after printing help
 }
 

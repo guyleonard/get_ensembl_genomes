@@ -16,13 +16,16 @@ Decide which genome portal you wish to download from, currently you can choose:
  
 ```bash
 Usage: ./bin/get_ensemble_genomes [-f | -m | -a | -p] -V <int> (-c) (-g)
- -f Ensembl DB: Fungi
- -m Ensembl DB: Metazoa
- -a Ensembl DB: Plants
- -p Ensembl DB: Protists
- -c CDS (genes) instead of peptides (default)
- -g GFF3 instead of FASTA
- -V Ensembl DB: Version
+Databases:
+		 -f Ensembl DB: Fungi
+		 -m Ensembl DB: Metazoa
+		 -a Ensembl DB: Plants
+		 -p Ensembl DB: Protists
+Version:
+		-V Ensembl DB: Version
+Other:
+ 		-c CDS (genes) instead of peptides (default)
+ 		-g GFF3 instead of FASTA
 ```
 
 For example, to download the CDS for Metazoa:
