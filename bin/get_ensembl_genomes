@@ -1,0 +1,164 @@
+#!/bin/bash
+# This script will download all peptides for all taxa within an Ensembl Genomes Database
+
+#
+# help
+#
+function help_function()
+{
+   echo ""
+   echo "e.g. Usage: $0 -p -V db_version"
+   echo -e "\t-f Ensembl DB: Fungi"
+   echo -e "\t-m Ensembl DB: Metazoa"
+   echo -e "\t-a Ensembl DB: Plants"
+   echo -e "\t-p Ensembl DB: Protists"
+   echo -e "\t-c CDS (genes) instead of peptides (default)"
+   echo -e "\t-g Get GFF3 instead of FASTA"
+   echo -e "\t-V Ensembl DB: Version"
+   exit 1 # Exit script after printing help
+}
+
+#
+# check the file exists before continuing
+#
+function validate_url(){
+  if wget -S --spider "$1" 2>&1 | grep -q '150'; then exit_status=$?; fi
+}
+
+# make things nice for our silly Mac friends ;)
+sedi=(-i) && [ "$(uname)" == "Darwin" ] && sedi=(-i '')
+
+#
+# globals
+#
+fasta_gff="fasta"
+content="pep"
+#
+# get user input
+#
+while getopts ":fmapcgV:" opt
+do
+   case ${opt} in
+   	  f )
+        database="fungi"
+        ;;
+   	  m )
+        database="metazoa"
+        ;;
+   	  a )
+        database="plants"
+        ;;
+      p )
+        database="protists"
+        ;;
+      c )
+		content="cds"
+		;;
+	  g )
+         fasta_gff="gff3"
+         content="gff3"
+        ;;
+      V )
+        db_version="$OPTARG"
+        ;;
+      \? ) help_function ;; # Print helpFunction in case parameter is non-existent
+   esac
+done
+shift $((OPTIND -1))
+
+#
+# print help on empty input
+#
+if [ -z "$database" ] || [ -z "$db_version" ]
+then
+   echo "Some or all of the parameters are empty";
+   help_function
+fi
+
+#
+# retrieve species list for database version
+#
+url="ftp://ftp.ensemblgenomes.org/pub/release-${db_version}/${database}/species_Ensembl${database^}.txt"
+validate_url "$url"
+species_list="species_Ensembl${database^}_release-${db_version}.txt"
+if [[ $exit_status == 0 ]]
+ then
+  if [ -f "${species_list}" ]
+   then
+   	echo "Previously retrieved ${species_list}."
+   else
+   	echo "Retrieving ${database^} release-${db_version} Species List from Ensembl from $url to ${species_list}"
+    wget -nv "${url}" -O "${species_list}"
+   fi
+ else
+  echo "Ensembl ${database^} release-${db_version} does not exist."
+  exit 1
+fi
+
+#
+# Generate Links from Species List Table
+#
+species_list_links="species_Ensembl${database^}_release-${db_version}_${content}_links.txt"
+if [ ! -f "${species_list_links}" ]
+ then
+ # nasty hack to replace empty values in a column, else the rows get reduced
+ # e.g. in Albugo, the 6th column has an empty value, which when read in the below loop moves the value in column 7 to 6.
+ # Albugo laibachii	albugo_laibachii	EnsemblProtists	890382	ENA 1		2011-08-ENA	N	N	Y	Y	Y	albugo_laibachii_core_47_100_1	1	
+ sed "${sedi[@]}" -e 's/^\t/NA\t/;s/\t$/\tNA/;:0 s/\t\t/\tNA\t/;t0' "${species_list}"
+ # remove header
+ sed "${sedi[@]}" -e 1d "${species_list}"
+
+ echo "Generating Links"
+  while IFS=$'\t' read -r -a myArray
+  do
+   core_db=${myArray[12]/_core_[[:digit:]]*_[[:digit:]]*_[[:digit:]]*/} # remove db_version number
+   species=${myArray[1]}
+
+   # catch cases where taxa exist outside of a 'collection'
+   if [[ ! "$core_db" =~ ^"${database}" ]]
+   then
+    collection="$core_db"
+   else
+    collection="${core_db}/${species}"
+   fi
+
+   species_capital=${myArray[1]^} # capitalise first letter
+
+   
+   if [[ "${myArray[4]}" =~ ^ENA ]]
+    then
+     # albugo causes all the issues
+     assembly=${myArray[4]// /} # remove space
+   elif [[ "${myArray[4]}" == "P.sojae V3.0" ]]
+    then
+     # exception - P.sojae V3.0
+     assembly="P_sojae_V3_0"
+   elif [[ "${myArray[4]}" == "svevo" ]]
+   	then
+   	 # exception Triticum turgidum
+   	 assembly="${myArray[4]^}.v1"
+   else
+     # normal condition
+     assembly=${myArray[4]// /\_} # spaces to underscores
+     assembly=${assembly/\//\_}   # forward slash to underscore
+     assembly=${assembly/,/}      # get rid of random commas (aureobasidium exf 150)
+   fi
+
+   if [ "$fasta_gff" == "fasta" ]
+    then
+     extension="${content}.all.fa"
+     echo "ftp://ftp.ensemblgenomes.org/pub/${database}/release-${db_version}/${fasta_gff}/${collection}/${content}/${species_capital}.${assembly}.${extension}.gz" >> "${species_list_links}"
+   else
+   	 extension="${db_version}.gff3"
+   	 content="${fasta_gff}"
+   	 echo "ftp://ftp.ensemblgenomes.org/pub/${database}/release-${db_version}/${fasta_gff}/${collection}/${species_capital}.${assembly}.${extension}.gz" >> "${species_list_links}"
+   fi
+
+  done < "${species_list}"
+ else
+  echo "Previously generated links in ${species_list_links}"
+fi
+
+num_lines=$(wc -l "${species_list_links}")
+echo "Downloading ${content} of ${num_lines}"
+wget -nv -nc -o "${species_list_links/txt/log}" -P "${database^}_release-${db_version}/${content}" -i "${species_list_links}"
