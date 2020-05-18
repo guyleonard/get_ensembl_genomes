@@ -109,7 +109,7 @@ if [ ! -f "${species_list_links}" ]
  # Albugo laibachii	albugo_laibachii	EnsemblProtists	890382	ENA 1		2011-08-ENA	N	N	Y	Y	Y	albugo_laibachii_core_47_100_1	1	
  sed "${sedi[@]}" -e 's/^\t/NA\t/;s/\t$/\tNA/;:0 s/\t\t/\tNA\t/;t0' "${species_list}"
  # remove header
- sed "${sedi[@]}" -e 1d "${species_list}"
+ sed "${sedi[@]}" '/^#/d' "${species_list}"
 
  echo "Generating Links"
   while IFS=$'\t' read -r -a myArray
