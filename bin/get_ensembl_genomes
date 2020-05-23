@@ -9,6 +9,7 @@ function help_function()
    echo ""
    echo "e.g. Usage: $0 -p -V db_version"
    echo -e "Databases:"
+   echo -e "\t-b Ensembl DB: Bacteria"
    echo -e "\t-f Ensembl DB: Fungi"
    echo -e "\t-m Ensembl DB: Metazoa"
    echo -e "\t-a Ensembl DB: Plants"
@@ -39,9 +40,12 @@ content="pep"
 #
 # get user input
 #
-while getopts ":fmapcgV:" opt
+while getopts ":bfmapcgV:" opt
 do
    case ${opt} in
+      b )
+        database="bacteria"
+        ;;
    	  f )
         database="fungi"
         ;;
@@ -55,9 +59,9 @@ do
         database="protists"
         ;;
       c )
-		content="cds"
-		;;
-	  g )
+		    content="cds"
+		    ;;
+	    g )
          fasta_gff="gff3"
          content="gff3"
         ;;
@@ -125,13 +129,14 @@ if [ ! -f "${species_list_links}" ]
     collection="${core_db}/${species}"
    fi
 
-   species_capital=${myArray[1]^} # capitalise first letter
+   species_capital=${myArray[1]^} # capitalise first letter trick
 
-   
+   # not a fan of these exceptions, they work with version 47
+   # but I haven't tried for many others - there's probably more
    if [[ "${myArray[4]}" =~ ^ENA ]]
     then
      # albugo causes all the issues
-     assembly=${myArray[4]// /} # remove space
+     assembly=${myArray[4]// /} # remove spaces
    elif [[ "${myArray[4]}" == "P.sojae V3.0" ]]
     then
      # exception - P.sojae V3.0
@@ -144,7 +149,30 @@ if [ ! -f "${species_list_links}" ]
      # normal condition
      assembly=${myArray[4]// /\_} # spaces to underscores
      assembly=${assembly/\//\_}   # forward slash to underscore
-     assembly=${assembly/,/}      # get rid of random commas (aureobasidium exf 150)
+     assembly=${assembly/,/}      # get rid of random commas (aureobasidium exf 150 i'm looking at you)
+   fi
+
+   if [[ "$database" == "fungi" ]]
+    then
+      #if [[ "${myArray[13]}" == "1" && ! "${myArray[1]}" =~ "gca_" && ! "${myArray[4]}" =~ "ASM" ]]
+      # then
+      #  assembly="${myArray[5]}"
+      if [[ "${myArray[13]}" == "1" && ! "${myArray[0]}" =~ "GCA_" && ! "${myArray[4]}" =~ "ASM" ]]
+      then
+        if [[ ! "${myArray[6]}" =~ "ENA" ]]
+         then
+          assembly="${myArray[5]}"
+        #elif [[ "${myArray[4]}" =~ "ASM" ]]
+        # then
+        #  assembly="${myArray[4]}"          
+        else
+         assembly="${myArray[4]}"
+        fi     
+      else
+         assembly=${myArray[4]// /\_} # spaces to underscores
+         assembly=${assembly/\//\_}   # forward slash to underscore
+         assembly=${assembly/,/}      # get rid of random commas (aureobasidium exf 150 i'm looking at you)
+    fi
    fi
 
    if [ "$fasta_gff" == "fasta" ]
