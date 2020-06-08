@@ -18,7 +18,8 @@ function help_function()
    echo -e "\t-V Ensembl DB: Version"
    echo -e "Other:"
    echo -e "\t-c CDS (genes) instead of peptides (default)"
-   echo -e "\t-g Get GFF3 instead of FASTA"
+   echo -e "\t-g GFF3 instead of FASTA"
+   echo -e "\t-t 'Top Level DNA' aka Chromosomes/Scaffolds - All DNA Regions"
    exit 1 # Exit script after printing help
 }
 
@@ -40,7 +41,7 @@ content="pep"
 #
 # get user input
 #
-while getopts ":bfmapcgV:" opt
+while getopts ":bfmapcgtV:" opt
 do
    case ${opt} in
       b )
@@ -62,8 +63,11 @@ do
 		    content="cds"
 		    ;;
 	    g )
-         fasta_gff="gff3"
-         content="gff3"
+        fasta_gff="gff3"
+        content="gff3"
+        ;;
+      t )
+        content="dna"
         ;;
       V )
         db_version="$OPTARG"
@@ -159,12 +163,18 @@ if [ ! -f "${species_list_links}" ]
       #  assembly="${myArray[5]}"
       if [[ "${myArray[13]}" == "1" && ! "${myArray[0]}" =~ "GCA_" && ! "${myArray[4]}" =~ "ASM" ]]
       then
+        echo "${myArray[0]}"
         if [[ ! "${myArray[6]}" =~ "ENA" ]]
          then
-          assembly="${myArray[5]}"
-        #elif [[ "${myArray[4]}" =~ "ASM" ]]
-        # then
-        #  assembly="${myArray[4]}"          
+          echo "\t${myArray[0]}"
+          if [[ "${myArray[6]}" =~ "Broad" ]]
+           then
+            echo "\t\t${myArray[0]}"
+            assembly="${myArray[4]}"
+          else
+           echo "\t\t\t${myArray[0]}"
+           assembly="${myArray[5]}"
+          fi
         else
          assembly="${myArray[4]}"
         fi     
@@ -175,14 +185,23 @@ if [ ! -f "${species_list_links}" ]
     fi
    fi
 
-   if [ "$fasta_gff" == "fasta" ]
+   if [[ "$fasta_gff" == "fasta" && $content == "pep" ]]
     then
      extension="${content}.all.fa"
      echo "ftp://ftp.ensemblgenomes.org/pub/${database}/release-${db_version}/${fasta_gff}/${collection}/${content}/${species_capital}.${assembly}.${extension}.gz" >> "${species_list_links}"
-   else
+   elif [[ "$fasta_gff" == "gff3" ]]
+    then
    	 extension="${db_version}.gff3"
    	 content="${fasta_gff}"
    	 echo "ftp://ftp.ensemblgenomes.org/pub/${database}/release-${db_version}/${fasta_gff}/${collection}/${species_capital}.${assembly}.${extension}.gz" >> "${species_list_links}"
+   elif [[ "$content" == "dna" ]]
+    then
+    #     ftp://ftp.ensemblgenomes.org/pub/${database}/release-${db_version}/${fasta_gff}/albugo_laibachii/dna/Albugo_laibachii.ENA1.dna.toplevel.fa.gz
+    extension="${content}.toplevel"
+    echo "ftp://ftp.ensemblgenomes.org/pub/${database}/release-${db_version}/${fasta_gff}/${collection}/${content}/${species_capital}.${assembly}.${extension}.fa.gz" >> "${species_list_links}"
+    else
+      echo "This option combination is not available"
+      exit 1
    fi
 
   done < "${species_list}"

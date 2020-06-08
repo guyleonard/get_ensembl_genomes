@@ -26,6 +26,7 @@ Version:
 Other:
  		-c CDS (genes) instead of peptides (default)
  		-g GFF3 instead of FASTA
+		-t \'Top Level DNA\' aka Chromosomes/Scaffolds - All DNA Regions
 ```
 
 For example, to download the CDS for Metazoa:
